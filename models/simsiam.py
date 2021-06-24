@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F 
 from torchvision.models import resnet50
-
+from models.backbones import resnetv2_50
 
 def D(p, z, version='simplified'): # negative cosine similarity
     if version == 'original':
@@ -17,11 +17,11 @@ def D(p, z, version='simplified'): # negative cosine similarity
         raise Exception
 
 
-
 class projection_MLP(nn.Module):
     def __init__(self, in_dim, hidden_dim=2048, out_dim=2048):
         super().__init__()
-        ''' page 3 baseline setting
+        ''' 
+        page 3 baseline setting
         Projection MLP. The projection MLP (in f) has BN ap-
         plied to each fully-connected (fc) layer, including its out- 
         put fc. Its output fc has no ReLU. The hidden fc is 2048-d. 
@@ -110,15 +110,17 @@ class SimSiam(nn.Module):
 
 
 
-
-
 if __name__ == "__main__":
-    model = SimSiam()
+    model = SimSiam(backbone=resnetv2_50())
     x1 = torch.randn((2, 3, 224, 224))
     x2 = torch.randn_like(x1)
 
-    model.forward(x1, x2).backward()
-    print("forward backwork check")
+    data_dict = model.forward(x1, x2)
+    print(data_dict)
+    loss = data_dict['loss'].mean() # ddp
+    print(loss)
+    loss.backward()
+    print("forward backword check")
 
     z1 = torch.randn((200, 2560))
     z2 = torch.randn_like(z1)

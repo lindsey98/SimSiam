@@ -25,15 +25,7 @@ def main(device, args):
         batch_size=args.train.batch_size,
         **args.dataloader_kwargs
     )
-    memory_loader = torch.utils.data.DataLoader(
-        dataset=get_dataset(
-            transform=get_aug(train=False, train_classifier=False, **args.aug_kwargs), 
-            train=True,
-            **args.dataset_kwargs),
-        shuffle=False,
-        batch_size=args.train.batch_size,
-        **args.dataloader_kwargs
-    )
+
     test_loader = torch.utils.data.DataLoader(
         dataset=get_dataset( 
             transform=get_aug(train=False, train_classifier=False, **args.aug_kwargs), 
@@ -43,7 +35,8 @@ def main(device, args):
         batch_size=args.train.batch_size,
         **args.dataloader_kwargs
     )
-
+    
+    
     # define model
     model = get_model(args.model).to(device)
     model = torch.nn.DataParallel(model)
@@ -82,6 +75,7 @@ def main(device, args):
             data_dict.update({'lr':lr_scheduler.get_lr()})
             
             local_progress.set_postfix(data_dict)
+            data_dict['loss'] = data_dict['loss'].mean().detach().cpu()
             logger.update_scalers(data_dict)
 
         if args.train.knn_monitor and epoch % args.train.knn_interval == 0: 
@@ -91,15 +85,15 @@ def main(device, args):
         global_progress.set_postfix(epoch_dict)
         logger.update_scalers(epoch_dict)
     
-    # Save checkpoint
-    model_path = os.path.join(args.ckpt_dir, f"{args.name}_{datetime.now().strftime('%m%d%H%M%S')}.pth") # datetime.now().strftime('%Y%m%d_%H%M%S')
-    torch.save({
-        'epoch': epoch+1,
-        'state_dict':model.module.state_dict()
-    }, model_path)
-    print(f"Model saved to {model_path}")
-    with open(os.path.join(args.log_dir, f"checkpoint_path.txt"), 'w+') as f:
-        f.write(f'{model_path}')
+        # Save checkpoint
+        model_path = os.path.join(args.ckpt_dir, f"{args.name}_{datetime.now().strftime('%m%d%H%M%S')}.pth") 
+        torch.save({
+            'epoch': epoch+1,
+            'state_dict':model.module.state_dict()
+        }, model_path)
+        print(f"Model saved to {model_path}")
+        with open(os.path.join(args.log_dir, f"checkpoint_path.txt"), 'w+') as f:
+            f.write(f'{model_path}')
 
     if args.eval is not False:
         args.eval_from = model_path
@@ -112,7 +106,6 @@ if __name__ == "__main__":
     main(device=args.device, args=args)
 
     completed_log_dir = args.log_dir.replace('in-progress', 'debug' if args.debug else 'completed')
-
 
 
     os.rename(args.log_dir, completed_log_dir)

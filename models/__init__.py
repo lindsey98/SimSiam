@@ -4,13 +4,16 @@ from .simclr import SimCLR
 from torchvision.models import resnet50, resnet18
 import torch
 from .backbones import resnet18_cifar_variant1, resnet18_cifar_variant2
+from .backbones import resnetv2_50
+
+
 
 def get_backbone(backbone, castrate=True):
     backbone = eval(f"{backbone}()")
 
-    if castrate:
-        backbone.output_dim = backbone.fc.in_features
-        backbone.fc = torch.nn.Identity()
+#     if castrate:
+#         backbone.output_dim = backbone.fc.in_features
+#         backbone.fc = torch.nn.Identity()
 
     return backbone
 
