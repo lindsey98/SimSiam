@@ -42,6 +42,8 @@ class GetLoader(torch.utils.data.Dataset):
             label = image_path.split('/')[0]
             self.img_paths.append(image_path)
             self.labels.append(label)
+            
+        self.targets = [self.label_dict[x] for x in self.labels]
 
     def __getitem__(self, item):
 

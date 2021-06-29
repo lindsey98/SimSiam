@@ -25,7 +25,19 @@ def main(device, args):
         batch_size=args.train.batch_size,
         **args.dataloader_kwargs
     )
-
+    
+    memory_loader = torch.utils.data.DataLoader(
+        dataset=get_dataset(
+            transform=get_aug(train=False, train_classifier=False, **args.aug_kwargs), 
+            train=True,
+            **args.dataset_kwargs),
+        shuffle=False,
+        batch_size=args.train.batch_size,
+        **args.dataloader_kwargs
+    )
+    print(f'Number of class {len(memory_loader.dataset.classes)}')
+    print(memory_loader.dataset.targets)
+    
     test_loader = torch.utils.data.DataLoader(
         dataset=get_dataset( 
             transform=get_aug(train=False, train_classifier=False, **args.aug_kwargs), 
@@ -79,7 +91,10 @@ def main(device, args):
             logger.update_scalers(data_dict)
 
         if args.train.knn_monitor and epoch % args.train.knn_interval == 0: 
-            accuracy = knn_monitor(model.module.backbone, memory_loader, test_loader, device, k=min(args.train.knn_k, len(memory_loader.dataset)), hide_progress=args.hide_progress) 
+            accuracy = knn_monitor(model.module.backbone, memory_loader, test_loader, 
+                                   device, 
+                                   k=min(args.train.knn_k, len(memory_loader.dataset)), 
+                                   hide_progress=args.hide_progress) 
         
         epoch_dict = {"epoch":epoch, "accuracy":accuracy}
         global_progress.set_postfix(epoch_dict)
